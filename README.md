@@ -10,6 +10,8 @@ May the strong IEx wins!
 - [IEx and basic data types](#IEx-and-basic-data-types)
 - [Pattern matching](#Pattern-matching)
 - [Functions and the pipe operator](#Functions-and-the-pipe-operator)
+- [Let's create our project](#Lets-create-our-project)
+
 ## Instalation
 To get started we need to install Elixir. You can follow the official guide to so [here](https://elixir-lang.org/install.html).
 
@@ -149,3 +151,23 @@ iex> [] |> new_head.(1) |> new_head.(2) |> new_head.(3)
 Which one do you prefer? I guess the second where we use that `|>` thing. Please meet the Pipe operator.
 
 It takes what is on its left side and injects it as the first parameter of the function that is on its right, making things more readable
+
+## Let's create our project
+
+To create our project we'll use `mix`, a build tool that elixir ships with and, it allows us to create, test, and compile projects. Let's create our project:
+
+`$ mix new tug_of_war --sup`
+
+This command will create our project named `tug_of_war` in a folder with the same name. The `--sup` flag tells mix to create a project with a supervision tree that will talk about it later on.
+
+Let's go to the project folder and see what is inside
+
+- `_build` - a folder that contains compilation artifacts
+- `lib` - the folder that will have our code
+- `test` - a folder where we can define our tests
+- `.formatter.exs` - The default settings of the build-in code formatter that we can run with `$ mix format`.
+- `mix.exs` - the file where we configure everything about the project like name, dependencies, and other things
+
+For now on we'll start our project with a shell session. To do it we'll tell iex to use our mix.exs like so:
+
+`$ iex -S mix`
