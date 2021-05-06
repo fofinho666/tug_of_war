@@ -13,11 +13,12 @@ May the strong IEx wins!
 - [Let's create our project](#lets-create-our-project)
 - [Abstracting Teams as Agents](#abstracting-teams-as-agents)
 - [Preparing the match](#preparing-the-match)
+- [Inspecting the war with Protocols](#inspecting-the-war-with-protocols)
 
 ## Instalation
 To get started we need to install Elixir. You can follow the official guide to so [here](https://elixir-lang.org/install.html).
 
-If you are going to play with someone else, be sure to use the **same** Elixir version. You use something like [asdf](https://asdf-vm.com/#/) to manage your Elixir versions
+If you are going to play with someone else, be sure to use **the same** Elixir version. You use something like [asdf](https://asdf-vm.com/#/) to manage your Elixir versions
 
 If everything went well you can run this command to see the version you have installed:
 ```bash
@@ -394,3 +395,55 @@ iex> TugOfWar.Team.get(:benfica)
 ```
 
 The game seams to be working but it's borring to always do `TugOfWar.Team.get/1` to see the team status. It would be nice if our struct represent the actual game
+
+## Inspecting the war with Protocols
+
+It would be nice to represent `%TugOfWar{}` in a way that represents the actual game.
+
+Well for that we can use Elixir protocols, which allows behaviour to be extended and implemented for any data type.
+
+For example, every time something is printed in our `iex` terminal, Elixir uses the `Inspect` protocol. Let's reimplement this protocol on the `TugOfWar` module
+
+```elixir
+  defimpl Inspect, for: TugOfWar do
+    def inspect(%TugOfWar{team: team, rival_team: rival_team}, _) do
+      team_name = "US " <> inspect(team)
+      rival_team_name = "THEM " <> inspect(rival_team)
+
+      team_rope = team |> TugOfWar.Team.get() |> Enum.reverse() |> inspect()
+      rival_team_rope = rival_team |> TugOfWar.Team.get() |> inspect()
+
+      max = max(String.length(team_name), String.length(team_rope))
+
+      """
+      #TugOfWar<
+        #{String.pad_leading(team_name, max)} vs #{rival_team_name}
+        #{String.pad_leading(team_rope, max)} >< #{rival_team_rope}
+      >
+      """
+    end
+  end
+```
+The code above implements the `Inspect` protocol for the `TugOfWar` struct, overwriting the default struct protocol.
+
+This protocol expects a new implementation for the function `inspect/2`. In which the first argument it's the struct itself and the second a keyword of options that we'll not use.
+
+In sum, we'll to return a big string rearrange the status and names of each team in which.
+
+```elixir
+iex> TugOfWar.Team.start_link(:benfica)
+{:ok, #PID<0.164.0>}
+iex> TugOfWar.Team.start_link(:sporting)
+{:ok, #PID<0.166.0>}
+iex> tow = TugOfWar.set(:benfica, :sporting, 10)
+#TugOfWar<
+      US :benfica vs THEM :sporting
+  [0, 1, 2, 3, 4] >< [5, 6, 7, 8, 9]
+>
+
+iex> TugOfWar.pull(tow)
+#TugOfWar<
+         US :benfica vs THEM :sporting
+  [0, 1, 2, 3, 4, 5] >< [6, 7, 8, 9]
+>
+```

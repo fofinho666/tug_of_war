@@ -35,4 +35,23 @@ defmodule TugOfWar do
     # Let's return the %TugOfWar{} itself
     tug_of_war
   end
+
+  defimpl Inspect, for: TugOfWar do
+    def inspect(%TugOfWar{team: team, rival_team: rival_team}, _) do
+      team_name = "US " <> inspect(team)
+      rival_team_name = "THEM " <> inspect(rival_team)
+
+      team_rope = team |> TugOfWar.Team.get() |> Enum.reverse() |> inspect()
+      rival_team_rope = rival_team |> TugOfWar.Team.get() |> inspect()
+
+      max = max(String.length(team_name), String.length(team_rope))
+
+      """
+      #TugOfWar<
+        #{String.pad_leading(team_name, max)} vs #{rival_team_name}
+        #{String.pad_leading(team_rope, max)} >< #{rival_team_rope}
+      >
+      """
+    end
+  end
 end
