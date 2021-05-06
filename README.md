@@ -11,7 +11,8 @@ May the strong IEx wins!
 - [Pattern matching](#pattern-matching)
 - [Functions and the pipe operator](#functions-and-the-pipe-operator)
 - [Let's create our project](#lets-create-our-project)
-- [Abstracting Teams as Agents](#abstracting-teamshas-agents)
+- [Abstracting Teams as Agents](#abstracting-teams-as-agents)
+- [Preparing the match](#preparing-the-match)
 
 ## Instalation
 To get started we need to install Elixir. You can follow the official guide to so [here](https://elixir-lang.org/install.html).
@@ -39,7 +40,7 @@ iex> x - 1
 3
 iex> "quick" <> "maths"
 "quickmaths"
-iex> # I'm forgot a space"
+iex> # I forgot a space"
 nil
 ```
 
@@ -202,7 +203,7 @@ As we can see, we've updated and requested the agent's state using its PID. Proc
 
 Let's create a Team using an Agent by creating a file at `lib/tug_of_war/team.ex` with the foloowing:
 
-```bash
+```elixir
 defmodule TugOfWar.Team do
   use Agent
 
@@ -284,7 +285,7 @@ iex> TugOfWar.Team.get(:benfica)
 
 Geat! We ready for a match! Meanwhile, if you forget how to play you can check out the documentation on the shell, like so:
 ```bash
-iex> h  TugOfWar.Team.start_link
+iex> h TugOfWar.Team.start_link
 
                               def start_link(name)
 
@@ -294,3 +295,102 @@ The team name is given so we can identify the team by name instead of using a
 PID.
 
 ```
+## Preparing the match
+
+For our match we'll need to keep tack of the teams that are playing. We are going to create a struct called `TugOfWar`. But how we define a struct? Let's see:
+
+```elixir
+iex> defmodule Player do
+...>    defstruct [:name, :number]
+...> end
+{:module, Player,
+ <<...>>,
+ %Player{name: nil, number: nil}}
+iex> cr7 = %Player{name: "Cristiano Reinaldo", number: 7}
+%Player{name: "Cristiano Reinaldo", number: 7}
+iex> cr7.name
+"Cristiano Reinaldo"
+iex> %Player{number: number} = cr7
+%Player{name: "Cristiano Reinaldo", number: 7}
+iex(5)> number
+7
+```
+A struct is only defined within a module and gets its name on the process. After beeing defined, we can use the `%Player{...}` syntax to create new structs or match on them.
+
+Next, let's start coding our game, to do that let's go to `lib/tug_of_war.ex` and clean the boilerplate code and add:
+
+```elixir
+defmodule TugOfWar do
+  @moduledoc """
+  Documentation for `TugOfWar`.
+  """
+  defstruct [:team, :rival_team]
+
+  @doc """
+  Starts the game by setting your `team` the `rival_team` and the rope.
+  """
+  def set(team, rival_team, rope_length) do
+    # making the integer division to be fair
+    half_rope = div(rope_length, 2)
+
+    team_rope = for n <- half_rope..1, do: n - 1
+    TugOfWar.Team.set(team, team_rope)
+
+    rival_team_rope = for n <- (half_rope + 1)..(half_rope * 2), do: n - 1
+    TugOfWar.Team.set(rival_team, rival_team_rope)
+
+    # Returns a %TugOfWar{} struct to be used
+    %TugOfWar{team: team, rival_team: rival_team}
+  end
+
+  @doc """
+  Pulls the rope by our team.
+  """
+  def pull(tug_of_war) do
+    # Checks if we can pull the rival team. If so, add the pulled data to our team.
+    # Otherwise, do nothing.
+    case TugOfWar.Team.pulled(tug_of_war.rival_team) do
+      :error -> :ok
+      {:ok, head_rope} -> TugOfWar.Team.pull(tug_of_war.team, head_rope)
+    end
+
+    # Let's return the %TugOfWar{} itself
+    tug_of_war
+  end
+end
+```
+We created the `TugOfWar` struct to store the match teams and the basic functions for our game.
+
+The `TugOfWar.set/3` (`/3` means the function expects three arguments) sets the rope for each team and returns the game struct.
+
+Next we added the `TugOfWar.pull/1` that will make our team pull the rival team, let's see in action:
+
+```elixir
+# Start the teams
+iex> TugOfWar.Team.start_link(:benfica)
+{:ok, #PID<0.159.0>}
+iex> TugOfWar.Team.start_link(:sporting)
+{:ok, #PID<0.161.0>}
+
+# Start the game
+iex> tow = TugOfWar.set(:benfica, :sporting, 10)
+%TugOfWar{rival_team: :sporting, team: :benfica}
+
+# Check initial data
+iex> TugOfWar.Team.get(:sporting)
+[5, 6, 7, 8, 9]
+iex> TugOfWar.Team.get(:benfica)
+[4, 3, 2, 1, 0]
+
+# Pull the rope
+iex> TugOfWar.pull(tow)
+%TugOfWar{rival_team: :sporting, team: :benfica}
+
+# See the changes after the pull
+iex> TugOfWar.Team.get(:sporting)
+[6, 7, 8, 9]
+iex> TugOfWar.Team.get(:benfica)
+[5, 4, 3, 2, 1, 0]
+```
+
+The game seams to be working but it's borring to always do `TugOfWar.Team.get/1` to see the team status. It would be nice if our struct represent the actual game
