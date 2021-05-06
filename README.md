@@ -6,11 +6,12 @@ We'll start by covering some basics of the language and by the end, we'll be fig
 
 May the strong IEx wins!
 ## Table of content
-- [Instalation](#Instalation)
-- [IEx and basic data types](#IEx-and-basic-data-types)
-- [Pattern matching](#Pattern-matching)
-- [Functions and the pipe operator](#Functions-and-the-pipe-operator)
-- [Let's create our project](#Lets-create-our-project)
+- [Instalation](#instalation)
+- [IEx and basic data types](#iex-and-basic-data-types)
+- [Pattern matching](#pattern-matching)
+- [Functions and the pipe operator](#functions-and-the-pipe-operator)
+- [Let's create our project](#lets-create-our-project)
+- [Abstracting Teams as Agents](#abstracting-teamshas-agents)
 
 ## Instalation
 To get started we need to install Elixir. You can follow the official guide to so [here](https://elixir-lang.org/install.html).
@@ -171,3 +172,125 @@ Let's go to the project folder and see what is inside
 For now on we'll start our project with a shell session. To do it we'll tell iex to use our mix.exs like so:
 
 `$ iex -S mix`
+
+## Abstracting Teams as Agents
+
+Since everything is imutable me need something to keep the state of how much rope the team have. We can use Agents as an abstraction since it holds a state of a process for us.
+
+Let's try to create an agent:
+
+```bash
+iex> {:ok, agent} = Agent.start_link(fn -> "our state" end)
+{:ok, #PID<0.110.0>}
+iex>  Agent.get(agent, fn list -> list end)
+"our state"
+iex> Agent.update(agent, fn state -> "#{state} updated" end)
+:ok
+iex> Agent.get(agent, fn state -> state end)
+"our state updated"
+```
+
+As we can see, we've created an Agent by passing a function that returned the string `"our state"` as state.
+
+The Agent created returned `{:ok, #PID<0.110.0>}`, a tuple "thats why the curly brackes" with an atom `:ok` and a process identifier (PID).
+
+Atoms in Elixir are used as tags, in this case we are tagging that the agent creations as successfully.
+
+The `#PID<...>` that we saved on the agent variable, is the process identifier of the agent. The agent is a Elixir process which is isolated and very lightweight in terms of memory and CPU.
+
+As we can see, we've updated and requested the agent's state using its PID. Processes in Elixir only interact with the outside through messages, so basically what happened was that we just send a message to that process to get or update the status
+
+Let's create a Team using an Agent by creating a file at `lib/tug_of_war/team.ex` with the foloowing:
+
+```bash
+defmodule TugOfWar.Team do
+  use Agent
+
+  @doc """
+  Starts a team with the given `name`.
+
+  The team name is given so we can identify
+  the team by name instead of using a PID.
+  """
+
+  def start_link(name) do
+    Agent.start_link(fn -> [] end, name: name)
+  end
+
+  @doc """
+  Get the amount of rope that the team have ther possession.
+  """
+  def get(team) do
+    Agent.get(team, fn team_rope -> team_rope end)
+  end
+
+  @doc """
+  Sets the amount of rope that the team have.
+  """
+  def set(team, rope) do
+    Agent.update(team, fn _ -> rope end)
+  end
+
+  @doc """
+  Pulls a `value` into the team's rope.
+  """
+  def pull(team, value) do
+    Agent.update(team, fn team_rope -> [value | team_rope] end)
+  end
+
+  @doc """
+  Remove an element from the `rope`.
+
+  Returns `{:ok, rope_head}` if there is a value on the rope's head to give away
+  or `:error` if the rope is currently empty.
+  """
+  def pulled(team) do
+    Agent.get_and_update(team, fn
+      [] -> {:error, []}
+      [rope_head | rope_tail] -> {{:ok, rope_head}, rope_tail}
+    end)
+  end
+end
+```
+In Elixir we group several functions into modules. Here we defined  five documented functions to interact with our Agent process. We also add to the top of the module `use Agent`, this in the future allow us to supervise our agent.
+
+This `use` macro
+injects any code in the current module, such as importing itself or other modules, defining new functions, setting a module state, etc.
+
+Let's practice with our team by opening a shell again:
+
+```elixir
+iex> TugOfWar.Team.start_link(:benfica)
+{:ok, #PID<0.143.0>}
+iex> TugOfWar.Team.get(:benfica)
+[]
+iex> TugOfWar.Team.set(:benfica, [1])
+:ok
+iex> TugOfWar.Team.get(:benfica)
+[1]
+iex> TugOfWar.Team.pull(:benfica, 0)
+:ok
+iex> TugOfWar.Team.get(:benfica)
+[0, 1]
+iex> TugOfWar.Team.pulled(:benfica)
+{:ok, 0}
+iex> TugOfWar.Team.pulled(:benfica)
+{:ok, 1}
+iex> TugOfWar.Team.pulled(:benfica)
+:error
+iex> TugOfWar.Team.get(:benfica)
+[]
+```
+
+Geat! We ready for a match! Meanwhile, if you forget how to play you can check out the documentation on the shell, like so:
+```bash
+iex> h  TugOfWar.Team.start_link
+
+                              def start_link(name)
+
+Starts a team with the given name.
+
+The team name is given so we can identify the team by name instead of using a
+PID.
+
+```
