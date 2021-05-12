@@ -1,6 +1,6 @@
 # TugOfWar
 
-The goal of this project is to get a first contact with Elixir what this amazing programing language brings out of the box by using the Erlang virtual machine.
+The goal of this project is to get a first contact with Elixir what this amazing programing language brings out of the box by using the BEAM (Erlang virtual machine).
 
 We'll start by covering some basics of the language and by the end, we'll be fighting for a list of numbers with someone else on our local network.
 
@@ -56,6 +56,10 @@ iex> {:ok, "value"}  # Tuples (typically hold a fixed amount of items)
 {:ok, "value"}
 ```
 
+To exit the shell you have two ways:
+- `ctrl + c`: shows you the break command. you can choose `a` to abort our type `ctrl + c` again.
+- `ctrl + \`: it will exit immediately.
+
 At the end of the project, we'll be fighting for a list of numbers on iex, something like:
 
 ```elixir
@@ -74,6 +78,7 @@ iex> TugOfWar.pull(tug)
                           [0, 1, 2] >< [3]
 >
 ```
+
 ## Pattern matching
 
 The `=` operator is not what you think on Elixir. Let's open a shell and try it out:
@@ -182,7 +187,7 @@ Since everything is imutable me need something to keep the state of how much rop
 
 Let's try to create an agent:
 
-```bash
+```elixir
 iex> {:ok, agent} = Agent.start_link(fn -> "our state" end)
 {:ok, #PID<0.110.0>}
 iex>  Agent.get(agent, fn list -> list end)
@@ -285,7 +290,7 @@ iex> TugOfWar.Team.get(:benfica)
 ```
 
 Geat! We ready for a match! Meanwhile, if you forget how to play you can check out the documentation on the shell, like so:
-```bash
+```elixir
 iex> h TugOfWar.Team.start_link
 
                               def start_link(name)
@@ -313,7 +318,7 @@ iex> cr7.name
 "Cristiano Reinaldo"
 iex> %Player{number: number} = cr7
 %Player{name: "Cristiano Reinaldo", number: 7}
-iex(5)> number
+iex> number
 7
 ```
 A struct is only defined within a module and gets its name on the process. After beeing defined, we can use the `%Player{...}` syntax to create new structs or match on them.
