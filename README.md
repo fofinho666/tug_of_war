@@ -14,6 +14,7 @@ May the strong IEx wins!
 - [Abstracting Teams as Agents](#abstracting-teams-as-agents)
 - [Preparing the match](#preparing-the-match)
 - [Inspecting the war with Protocols](#inspecting-the-war-with-protocols)
+- [Supervise the match](#supervise-the-match)
 
 ## Instalation
 To get started we need to install Elixir. You can follow the official guide to so [here](https://elixir-lang.org/install.html).
@@ -214,7 +215,6 @@ defmodule TugOfWar.Team do
   The team name is given so we can identify
   the team by name instead of using a PID.
   """
-
   def start_link(name) do
     Agent.start_link(fn -> [] end, name: name)
   end
@@ -447,3 +447,121 @@ iex> TugOfWar.pull(tow)
   [0, 1, 2, 3, 4, 5] >< [6, 7, 8, 9]
 >
 ```
+## Supervise the match
+
+What would happen if one the team suddenly decide to leave? Let's find out:
+
+```elixir
+iex> TugOfWar.Team.start_link(:benfica)
+{:ok, #PID<0.143.0>}
+iex> TugOfWar.Team.start_link(:porto)
+{:ok, #PID<0.145.0>}
+iex> tow = TugOfWar.set(:benfica, :porto, 4)
+#TugOfWar<
+  US :benfica vs THEM :porto
+       [0, 1] >< [2, 3]
+
+iex> TugOfWar.pull(tow)
+#TugOfWar<
+  US :benfica vs THEM :porto
+    [0, 1, 2] >< [3]
+>
+
+# This unlinking the team will avoid the shell to shutdown
+iex> Process.unlink(Process.whereis(:porto))
+true
+
+# This will send the shutdown signal to this :porto team
+iex> Process.exit(Process.whereis(:porto), :shutdown)
+true
+iex> TugOfWar.pull(tow)
+** (exit) exited in: GenServer.call(:porto, {:get_and_update, #Function<2.111802535/1 in TugOfWar.Team.pulled/1>}, 5000)
+    ** (EXIT) no process: the process is not alive or there's no process currently associated with the given name, possibly because its application isn't started
+    (elixir 1.11.4) lib/gen_server.ex:1017: GenServer.call/3
+    (tug_of_war 0.1.0) lib/tug_of_war.ex:37: TugOfWar.pull/1
+```
+
+As we can see, we got an `** (EXIT) no process` because the team `:porto` is no longer on the match.
+
+It would be nice if we had some sort of referee to keep them in game or prevent a process to crash. To do this we can use a `Supervisor`.
+
+When we were creating the project we passed a `--sup` flag to mix, which generated the project with a supervision tree.
+
+Let’s have a look at `lib/tug_of_war/application.ex`.
+It contains the `start/2` application callback which is responsible to start the supervisor with a list of children. Let's add our `RefereeSupervisor` as a supervisor child:
+
+```elixir
+defmodule TugOfWar.Application do
+  # See https://hexdocs.pm/elixir/Application.html
+  # for more information on OTP Applications
+  @moduledoc false
+
+  use Application
+
+  @impl true
+  def start(_type, _args) do
+    children = [
+      {DynamicSupervisor, strategy: :one_for_one, name: TugOfWar.RefereeSupervisor}
+    ]
+
+    # See https://hexdocs.pm/elixir/Supervisor.html
+    # for other strategies and supported options
+    opts = [strategy: :one_for_one, name: TugOfWar.Supervisor]
+    Supervisor.start_link(children, opts)
+  end
+end
+
+```
+
+A supervisor supervising another supervisor! This is what's called a superviser tree. But why we have a `Supervisor` and a `DynamicSupervisor`.
+
+Well a normal `Supervisor` is used when we know what who many children we'll supervise before hand, for exemple of a web application the connection to your database or in this case the referee.
+
+The `DynamicSupervisor` is used when the need to spawn children on the go. In this case the referee does not know which team is playing the match.
+
+Both have its `strategy` to handle their children in case something happen ([see more here](https://hexdocs.pm/elixir/Supervisor.html)). And both have a `name` to be refered anywhere in our code, like the teams `Agent`.
+
+Let's tell to the `TugOfWar.RefereeSupervisor` that a team is ready to play and need supervison. Let's add the following function to `lib/tug_of_war.ex`.
+
+```elixir
+  @doc """
+  The team is ready to start the match
+  """
+  def ready(team_name) do
+    DynamicSupervisor.start_child(TugOfWar.RefereeSupervisor, {TugOfWar.Team, team_name})
+  end
+```
+
+On the above snippet we use the `DynamicSupervisor` API inform the `TugOfWar.RefereeSupervisor` that it was a new team as a child.
+
+This `start_child` knows how to start/shut down the team's `Process` by the ["child specification"](https://hexdocs.pm/elixir/Supervisor.html#module-child-specification) that recives as second parameter. In this case it will call the `TugOfWar.Team.start_link` with the name that we are providing [(more here)](https://hexdocs.pm/elixir/Supervisor.html#module-child_spec-1)
+
+So, can `:porto` leave the match if it's losing again?
+
+```elixir
+iex> TugOfWar.ready(:benfica)
+{:ok, #PID<0.144.0>}
+iex> TugOfWar.ready(:porto)
+{:ok, #PID<0.146.0>}
+iex> tow = TugOfWar.set(:benfica, :porto, 4)
+#TugOfWar<
+  US :benfica vs THEM :porto
+       [0, 1] >< [2, 3]
+>
+
+iex> TugOfWar.pull(tow)
+#TugOfWar<
+  US :benfica vs THEM :porto
+    [0, 1, 2] >< [3]
+>
+
+iex> Process.exit(Process.whereis(:porto), :shutdown)
+true
+iex> TugOfWar.pull(tow)
+#TugOfWar<
+  US :benfica vs THEM :porto
+    [0, 1, 2] >< []
+>
+```
+
+Noop! The team `:porto` was restarted by the supervisor, unfortunately, it lost its state since it's a new Agent process. It's a penalty for trying to leave ;)

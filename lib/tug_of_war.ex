@@ -5,6 +5,13 @@ defmodule TugOfWar do
   defstruct [:team, :rival_team]
 
   @doc """
+  The team is ready to start the match
+  """
+  def ready(team_name) do
+    DynamicSupervisor.start_child(TugOfWar.RefereeSupervisor, {TugOfWar.Team, team_name})
+  end
+
+  @doc """
   Starts the game by setting your `team` the `rival_team` and the rope.
   """
   def set(team, rival_team, rope_length) do

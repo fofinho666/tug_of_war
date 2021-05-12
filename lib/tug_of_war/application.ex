@@ -8,8 +8,7 @@ defmodule TugOfWar.Application do
   @impl true
   def start(_type, _args) do
     children = [
-      # Starts a worker by calling: TugOfWar.Worker.start_link(arg)
-      # {TugOfWar.Worker, arg}
+      {DynamicSupervisor, strategy: :one_for_one, name: TugOfWar.RefereeSupervisor}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

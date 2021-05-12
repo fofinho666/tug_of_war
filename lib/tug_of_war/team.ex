@@ -7,7 +7,6 @@ defmodule TugOfWar.Team do
   The team name is given so we can identify
   the team by name instead of using a PID.
   """
-
   def start_link(name) do
     Agent.start_link(fn -> [] end, name: name)
   end
