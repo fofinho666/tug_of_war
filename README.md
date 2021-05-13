@@ -15,6 +15,7 @@ May the strong IEx wins!
 - [Preparing the match](#preparing-the-match)
 - [Inspecting the war with Protocols](#inspecting-the-war-with-protocols)
 - [Supervise the match](#supervise-the-match)
+- [Play over the network](#play-over-the-network)
 
 ## Instalation
 To get started we need to install Elixir. You can follow the official guide to so [here](https://elixir-lang.org/install.html).
@@ -570,3 +571,62 @@ iex> TugOfWar.pull(tow)
 ```
 
 Noop! The team `:porto` was restarted by the supervisor, unfortunately, it lost its state since it's a new Agent process. It's a penalty for trying to leave ;)
+
+## Play over the network
+One cool thing about this technology is the distributed software that BEAM vm gives us out of the box.
+Can we use it to pull this tug with a friend on the same network? Yes we can!
+
+Before we start I would sugest to make the `TugOfWar.ready/1` return the our node address by using `Node.self/0`:
+```elixir
+  def ready(team_name) do
+    DynamicSupervisor.start_child(TugOfWar.RefereeSupervisor, {TugOfWar.Team, team_name})
+
+    {team_name, Node.self()}
+  end
+```
+This will help a lot when trying to get every team ready. Because the Agent API will need the node address to make cross-node requests.
+
+Next, we need to find ours and his IP adderss:
+- on linux: `hostname -I | awk '{print $1}'`
+- on mac: `ipconfig getifaddr en0`
+
+With our IPs on our clipboard, let's start our IEx with a `cookie` and our node name:
+
+`$ iex --name fofinho@<OUR IP>  --cookie secret -S mix`
+
+In the case of our friend it depends if he has the code or not.
+
+If he does not need the code, just need to know the `cookie` and our node adderss for the `remsh`. He'll remote access our shell:
+
+`$ iex --sname durinho --cookie secret --remsh fofinho@<OUR IP>`
+
+If he has the latest copy of the code we can just need the `cookie` and his node name:
+
+`$ iex --name durinho@<HIS IP> --cookie secret -S mix`
+
+Inside of each shell we can start by getting ready set and pull!
+
+```elixir
+# Extange teams and node addresses
+iex> us = TugOfWar.ready(:benfica)
+{:benfica, :"fofinho@<OUR IP>"}
+
+iex> them = {:sporting, :"durinho@<HIS IP>"}
+{:sporting, :"durinho@<HIS IP>"}
+
+# Let's get ready!!!
+iex> tow = TugOfWar.set(us, them, 5)
+#TugOfWar<
+  US {:benfica, :"fofinho@<OUR IP>"} vs THEM {:sporting, :"durinho@<HIS IP>"}
+                                  [0, 1] >< [2, 3]
+>
+
+# Let him pull and check the status of our team
+iex> tow
+#TugOfWar<
+  US {:benfica, :"fofinho@<OUR IP>"} vs THEM {:sporting, :"durinho@<HIS IP>"}
+                                     [3] >< [2, 1, 0]
+>
+```
+
+Our pulling cross network works because the teams are just processes. When we pull or get pulled we are in essence sending messages to those processes via the Agent API. On Elixir we send messages to any PID regardless of its location, if it's the same node or another node on the network the BEAM will handle it.

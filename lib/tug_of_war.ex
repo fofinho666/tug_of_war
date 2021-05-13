@@ -9,6 +9,8 @@ defmodule TugOfWar do
   """
   def ready(team_name) do
     DynamicSupervisor.start_child(TugOfWar.RefereeSupervisor, {TugOfWar.Team, team_name})
+
+    {team_name, Node.self()}
   end
 
   @doc """
