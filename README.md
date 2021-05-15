@@ -1,12 +1,13 @@
 # TugOfWar
 
-The goal of this project is to get a first contact with Elixir what this amazing programing language brings out of the box by using the BEAM (Erlang virtual machine).
+The goal of this project is to get a first contact with Elixir what this programing language brings out of the box by using the BEAM (Erlang virtual machine).
 
-We'll start by covering some basics of the language and by the end, we'll be fighting for a list of numbers with someone else on our local network.
+We'll start by covering some basics of the language and by the end, we'll make a online **tug of war** game. Where we'll be fighting for a list of numbers with someone else on our local network.
+![TugOfWar](tug_of_war.png)
 
 May the strong IEx wins!
 ## Table of content
-- [Instalation](#instalation)
+- [Installation](#installation)
 - [IEx and basic data types](#iex-and-basic-data-types)
 - [Pattern matching](#pattern-matching)
 - [Functions and the pipe operator](#functions-and-the-pipe-operator)
@@ -17,12 +18,12 @@ May the strong IEx wins!
 - [Supervise the match](#supervise-the-match)
 - [Play over the network](#play-over-the-network)
 
-## Instalation
+## Installation
 To get started we need to install Elixir. You can follow the official guide to so [here](https://elixir-lang.org/install.html).
 
 If you are going to play with someone else, be sure to use **the same** Elixir version. You use something like [asdf](https://asdf-vm.com/#/) to manage your Elixir versions
 
-If everything went well you can run this command to see the version you have installed:
+If everything went well, you can run this command to see the version you have installed:
 ```bash
 $ elixir -v
 
@@ -57,7 +58,7 @@ iex> {:ok, "value"}  # Tuples (typically hold a fixed amount of items)
 {:ok, "value"}
 ```
 
-To exit the shell you have two ways:
+To exit the shell, you have two ways:
 - `ctrl + c`: shows you the break command. you can choose `a` to abort our type `ctrl + c` again.
 - `ctrl + \`: it will exit immediately.
 
@@ -96,7 +97,7 @@ What?? How did the last operation work? This is because the `=` is the match ope
 iex> 8 = y
 ** (MatchError) no match of right hand side value: 9
 ```
-Like so, if the sides don't match we got an error.
+Like so, if the sides don't match, we got an error.
 
 We can also pattern match data structures. Take the example of lists, by matching with `[head|tail]` we can extract the first element or the Head and the rest of the elements or the Tail.
 
@@ -134,7 +135,7 @@ For me, there are 2 "Everything"s on this programing language.
 1. "Everything" is immutable
 2. "Everything" is a function
 
-Could we make a function to add elements to a list? Yes we can:
+Could we make a function to add elements to a list? Yes, we can:
 ```elixir
 iex> list = [1,2,3]
 [1, 2, 3]
@@ -164,11 +165,11 @@ It takes what is on its left side and injects it as the first parameter of the f
 
 ## Let's create our project
 
-To create our project we'll use `mix`, a build tool that elixir ships with and, it allows us to create, test, and compile projects. Let's create our project:
+To create our project, we'll use `mix`, a build tool that elixir ships with and, it allows us to create, test, and compile projects. Let's create our project:
 
 `$ mix new tug_of_war --sup`
 
-This command will create our project named `tug_of_war` in a folder with the same name. The `--sup` flag tells mix to create a project with a supervision tree that will talk about it later on.
+This command will create our project named `tug_of_war` in a folder with the same name. The `--sup` flag tells mix to create a project with a supervision tree that will talk about it later.
 
 Let's go to the project folder and see what is inside
 
@@ -178,7 +179,7 @@ Let's go to the project folder and see what is inside
 - `.formatter.exs` - The default settings of the build-in code formatter that we can run with `$ mix format`.
 - `mix.exs` - the file where we configure everything about the project like name, dependencies, and other things
 
-For now on we'll start our project with a shell session. To do it we'll tell iex to use our mix.exs like so:
+For now, on we'll start our project with a shell session. To do it we'll tell iex to use our mix.exs like so:
 
 `$ iex -S mix`
 
@@ -205,7 +206,7 @@ The Agent created returned `{:ok, #PID<0.110.0>}`, a tuple "thats why the curly 
 
 Atoms in Elixir are used as tags, in this case we are tagging that the agent creations as successfully.
 
-The `#PID<...>` that we saved on the agent variable, is the process identifier of the agent. The agent is a Elixir process which is isolated and very lightweight in terms of memory and CPU.
+The `#PID<...>` that we saved on the agent variable, is the process identifier of the agent. The agent is an Elixir process which is isolated and very lightweight in terms of memory and CPU.
 
 As we can see, we've updated and requested the agent's state using its PID. Processes in Elixir only interact with the outside through messages, so basically what happened was that we just send a message to that process to get or update the status
 
@@ -260,7 +261,7 @@ defmodule TugOfWar.Team do
   end
 end
 ```
-In Elixir we group several functions into modules. Here we defined  five documented functions to interact with our Agent process. We also add to the top of the module `use Agent`, this in the future allow us to supervise our agent.
+In Elixir we group several functions into modules. Here we defined five documented functions to interact with our Agent process. We also add to the top of the module `use Agent`, this in the future allow us to supervise our agent.
 
 This `use` macro
 injects any code in the current module, such as importing itself or other modules, defining new functions, setting a module state, etc.
@@ -370,7 +371,7 @@ We created the `TugOfWar` struct to store the match teams and the basic function
 
 The `TugOfWar.set/3` (`/3` means the function expects three arguments) sets the rope for each team and returns the game struct.
 
-Next we added the `TugOfWar.pull/1` that will make our team pull the rival team, let's see in action:
+Next, we added the `TugOfWar.pull/1` that will make our team pull the rival team, let's see in action:
 
 ```elixir
 # Start the teams
@@ -592,41 +593,41 @@ Next, we need to find ours and his IP adderss:
 
 With our IPs on our clipboard, let's start our IEx with a `cookie` and our node name:
 
-`$ iex --name fofinho@<OUR IP>  --cookie secret -S mix`
+`$ iex --name jorge_jesus@<OUR IP>  --cookie secret -S mix`
 
-In the case of our friend it depends if he has the code or not.
+In the case of our friend, it depends if he has the code or not.
 
 If he does not need the code, just need to know the `cookie` and our node adderss for the `remsh`. He'll remote access our shell:
 
-`$ iex --sname durinho --cookie secret --remsh fofinho@<OUR IP>`
+`$ iex --sname ruben_amorim --cookie secret --remsh jorge_jesus@<OUR IP>`
 
-If he has the latest copy of the code we can just need the `cookie` and his node name:
+If he has the latest copy of the code, we can just need the `cookie` and his node name:
 
-`$ iex --name durinho@<HIS IP> --cookie secret -S mix`
+`$ iex --name ruben_amorim@<HIS IP> --cookie secret -S mix`
 
 Inside of each shell we can start by getting ready set and pull!
 
 ```elixir
 # Extange teams and node addresses
 iex> us = TugOfWar.ready(:benfica)
-{:benfica, :"fofinho@<OUR IP>"}
+{:benfica, :"jorge_jesus@<OUR IP>"}
 
-iex> them = {:sporting, :"durinho@<HIS IP>"}
-{:sporting, :"durinho@<HIS IP>"}
+iex> them = {:sporting, :"ruben_amorim@<HIS IP>"}
+{:sporting, :"ruben_amorim@<HIS IP>"}
 
 # Let's get ready!!!
 iex> tow = TugOfWar.set(us, them, 5)
 #TugOfWar<
-  US {:benfica, :"fofinho@<OUR IP>"} vs THEM {:sporting, :"durinho@<HIS IP>"}
+  US {:benfica, :"jorge_jesus@<OUR IP>"} vs THEM {:sporting, :"ruben_amorim@<HIS IP>"}
                                   [0, 1] >< [2, 3]
 >
 
 # Let him pull and check the status of our team
 iex> tow
 #TugOfWar<
-  US {:benfica, :"fofinho@<OUR IP>"} vs THEM {:sporting, :"durinho@<HIS IP>"}
-                                     [3] >< [2, 1, 0]
+  US {:benfica, :"jorge_jesus@<OUR IP>"} vs THEM {:sporting, :"ruben_amorim@<HIS IP>"}
+                                     [0] >< [1, 2, 3]
 >
 ```
 
-Our pulling cross network works because the teams are just processes. When we pull or get pulled we are in essence sending messages to those processes via the Agent API. On Elixir we send messages to any PID regardless of its location, if it's the same node or another node on the network the BEAM will handle it.
+Our pulling cross network works because the teams are just processes. When we pull or get pulled, we are in essence sending messages to those processes via the Agent API. On Elixir we send messages to any PID regardless of its location, if it's the same node or another node on the network the BEAM will handle it.
